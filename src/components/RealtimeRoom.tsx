@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import Eyes from './Eyes'
 
 const MAX_PARTICIPANTS = 10
 const THROTTLE_MS = 33
-const BLINK_THRESHOLD = 25 // Adjust this value based on testing
+const BLINK_THRESHOLD = 30 // Adjust this value based on testing
 
 interface Participant {
   isBlinking: boolean
@@ -25,6 +25,11 @@ interface DebugData {
   error: string | null
 }
 
+interface CalibrationPoint {
+  x: number
+  y: number
+}
+
 declare global {
   interface Window {
     webgazer: {
@@ -32,7 +37,12 @@ declare global {
       setGazeListener: (listener: (data: any) => void) => typeof window.webgazer
       begin: () => void
       end: () => void
-      getTracker: () => any // This is still any because the tracker API is complex and not well-typed
+      getTracker: () => any
+      clearData: () => typeof window.webgazer
+      showVideo: (show: boolean) => typeof window.webgazer
+      showFaceOverlay: (show: boolean) => typeof window.webgazer
+      showFaceFeedbackBox: (show: boolean) => typeof window.webgazer
+      recordScreenPosition: (x: number, y: number, type: string) => typeof window.webgazer
     }
   }
 }
@@ -49,6 +59,9 @@ export function RealtimeRoom() {
     isBlinking: false,
     error: null
   })
+  const [isCalibrating, setIsCalibrating] = useState(false)
+  const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([])
+  const [currentPoint, setCurrentPoint] = useState(0)
 
   useEffect(() => {
     let currentChannel: RealtimeChannel | null = null
@@ -63,7 +76,7 @@ export function RealtimeRoom() {
 
     // Initialize WebGazer with blink detection
     window.webgazer
-      .showPredictionPoints(false) // Hide prediction points
+      .showPredictionPoints(true) // Show prediction points
       // .showVideo(false) // Optionally hide video feed
       // .showFaceOverlay(false) // Hide face overlay
       // .showFaceFeedbackBox(false) // Hide face feedback box
@@ -144,6 +157,7 @@ export function RealtimeRoom() {
           setDebugData(prev => ({ ...prev, error: error?.toString() || 'Unknown error' }))
         }
       })
+      .saveDataAcrossSessions(true)
       .begin()
 
     // Create throttled position tracking function
@@ -217,21 +231,95 @@ export function RealtimeRoom() {
     }
   }, [])
 
+  const startCalibration = useCallback(() => {
+    const points: CalibrationPoint[] = [
+      { x: 0.1, y: 0.1 },
+      { x: 0.9, y: 0.1 },
+      { x: 0.5, y: 0.5 },
+      { x: 0.1, y: 0.9 },
+      { x: 0.9, y: 0.9 },
+    ]
+    setCalibrationPoints(points)
+    setCurrentPoint(0)
+    setIsCalibrating(true)
+
+    // Update WebGazer settings one at a time
+    const webgazer = window.webgazer
+    webgazer.clearData()
+    webgazer.showVideo(true)
+    webgazer.showFaceOverlay(true)
+    webgazer.showFaceFeedbackBox(true)
+    webgazer.showPredictionPoints(true)
+  }, [])
+
+  const handleCalibrationClick = useCallback((event: React.MouseEvent) => {
+    if (!isCalibrating) return
+
+    // Record click location for calibration
+    const x = event.clientX
+    const y = event.clientY
+    window.webgazer.recordScreenPosition(x, y, 'click')
+
+    if (currentPoint < calibrationPoints.length - 1) {
+      setCurrentPoint(prev => prev + 1)
+    } else {
+      setIsCalibrating(false)
+      // Update WebGazer settings one at a time
+      const webgazer = window.webgazer
+      webgazer.showVideo(false)
+      webgazer.showFaceOverlay(false)
+      webgazer.showFaceFeedbackBox(false)
+      webgazer.showPredictionPoints(true)
+    }
+  }, [isCalibrating, currentPoint, calibrationPoints.length])
+
   return (
     <>
-      {/* Eyes for each participant */}
-      {Object.entries(roomState.participants).map(([key, presences]) => {
-        const participant = presences[0]
-        return (
-          <Eyes
-            key={key}
-            isBlinking={participant.isBlinking}
-          />
-        )
-      })}
+      {isCalibrating ? (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={handleCalibrationClick}
+        >
+          {calibrationPoints.map((point, index) => (
+            <div
+              key={index}
+              className={`absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 ${
+                index === currentPoint ? 'bg-red-500 animate-pulse' : 'bg-gray-500'
+              } z-50`}
+              style={{
+                left: `${point.x * 100}%`,
+                top: `${point.y * 100}%`,
+              }}
+            />
+          ))}
+          <div className="text-white text-center z-50">
+            Click the red dot to calibrate ({currentPoint + 1}/{calibrationPoints.length})
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Eyes for each participant */}
+          {Object.entries(roomState.participants).map(([key, presences]) => {
+            const participant = presences[0]
+            return (
+              <Eyes
+                key={key}
+                isBlinking={participant.isBlinking}
+              />
+            )
+          })}
+        </>
+      )}
 
       {/* Debug panel */}
       <div className="fixed bottom-4 left-4 bg-black/50 p-2 rounded text-white text-sm space-y-2">
+        <button 
+          onClick={startCalibration}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Calibrate WebGazer
+        </button>
+        
         <div>Connected Participants: {Object.keys(roomState.participants).length}</div>
         
         {/* Eye tracking debug info */}
