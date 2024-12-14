@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import Eyes from './Eyes'
 
 const MAX_PARTICIPANTS = 10
-const THROTTLE_MS = 200 // 50ms throttle time (20 updates per second)
+const THROTTLE_MS = 33
+const BLINK_THRESHOLD = 25 // Adjust this value based on testing
 
 interface Participant {
-  x: number
-  y: number
+  isBlinking: boolean
   online_at: string
 }
 
@@ -16,31 +17,144 @@ interface RoomState {
   participants: RealtimePresenceState<Participant>
 }
 
+interface DebugData {
+  leftBrightness: number
+  rightBrightness: number
+  avgBrightness: number
+  isBlinking: boolean
+  error: string | null
+}
+
+declare global {
+  interface Window {
+    webgazer: {
+      showPredictionPoints: (show: boolean) => typeof window.webgazer
+      setGazeListener: (listener: (data: any) => void) => typeof window.webgazer
+      begin: () => void
+      end: () => void
+      getTracker: () => any // This is still any because the tracker API is complex and not well-typed
+    }
+  }
+}
+
 export function RealtimeRoom() {
   const [roomState, setRoomState] = useState<RoomState>({
     channel: null,
     participants: {}
+  })
+  const [debugData, setDebugData] = useState<DebugData>({
+    leftBrightness: 0,
+    rightBrightness: 0,
+    avgBrightness: 0,
+    isBlinking: false,
+    error: null
   })
 
   useEffect(() => {
     let currentChannel: RealtimeChannel | null = null
     const tempChannel = supabase.channel('room_discovery')
     const userId = window.crypto.randomUUID()
+    let lastBlinkTime = Date.now()
+    let isCurrentlyBlinking = false
 
-    // Create throttled position tracking function that updates at most every 50ms
-    const throttledTrackPosition = createThrottledFunction((x: number, y: number) => {
+    // Create a canvas for processing eye patches
+    const imageCanvas = document.createElement('canvas')
+    const ctx = imageCanvas.getContext('2d')
+
+    // Initialize WebGazer with blink detection
+    window.webgazer
+      .showPredictionPoints(false) // Hide prediction points
+      // .showVideo(false) // Optionally hide video feed
+      // .showFaceOverlay(false) // Hide face overlay
+      // .showFaceFeedbackBox(false) // Hide face feedback box
+      .setGazeListener(async (data: any) => {
+        if (data == null || !currentChannel || !ctx) return
+
+        try {
+          // Get video element
+          const videoElement = document.getElementById('webgazerVideoFeed') as HTMLVideoElement
+          if (!videoElement) {
+            setDebugData(prev => ({ ...prev, error: 'Video feed not found' }))
+            return
+          }
+
+          // Set canvas size to match video
+          imageCanvas.width = videoElement.videoWidth
+          imageCanvas.height = videoElement.videoHeight
+
+          // Draw current frame to canvas
+          ctx.drawImage(videoElement, 0, 0)
+
+          // Get eye patches
+          const tracker = window.webgazer.getTracker()
+          const patches = await tracker.getEyePatches(
+            videoElement,
+            imageCanvas,
+            videoElement.videoWidth,
+            videoElement.videoHeight
+          )
+
+          if (!patches?.right?.patch?.data || !patches?.left?.patch?.data) {
+            setDebugData(prev => ({ ...prev, error: 'No eye patches detected' }))
+            return
+          }
+
+          // Calculate brightness for each eye
+          const calculateBrightness = (imageData: ImageData) => {
+            let total = 0
+            for (let i = 0; i < imageData.data.length; i += 4) {
+              // Convert RGB to grayscale
+              const r = imageData.data[i]
+              const g = imageData.data[i + 1]
+              const b = imageData.data[i + 2]
+              total += (r + g + b) / 3
+            }
+            return total / (imageData.width * imageData.height)
+          }
+
+          const rightEyeBrightness = calculateBrightness(patches.right.patch)
+          const leftEyeBrightness = calculateBrightness(patches.left.patch)
+          const avgBrightness = (rightEyeBrightness + leftEyeBrightness) / 2
+
+          // Update debug data
+          setDebugData({
+            leftBrightness: leftEyeBrightness,
+            rightBrightness: rightEyeBrightness,
+            avgBrightness,
+            isBlinking: isCurrentlyBlinking,
+            error: null
+          })
+          
+          // Detect blink based on brightness threshold
+          const blinkDetected = avgBrightness > BLINK_THRESHOLD
+
+          // Debounce blink detection to avoid rapid changes
+          if (blinkDetected !== isCurrentlyBlinking) {
+            const now = Date.now()
+            if (now - lastBlinkTime > 150) { // Minimum time between blink state changes
+              isCurrentlyBlinking = blinkDetected
+              lastBlinkTime = now
+              throttledTrackPosition(blinkDetected)
+            }
+          } else {
+            throttledTrackPosition(isCurrentlyBlinking)
+          }
+        } catch (error) {
+          console.error('Error getting eye patches:', error)
+          setDebugData(prev => ({ ...prev, error: error?.toString() || 'Unknown error' }))
+        }
+      })
+      .begin()
+
+    // Create throttled position tracking function
+    const throttledTrackPosition = createThrottledFunction((isBlinking: boolean) => {
       if (currentChannel) {
         currentChannel.track({
-          x,
-          y,
+          isBlinking,
           online_at: new Date().toISOString()
         })
       }
     }, THROTTLE_MS)
-
-    const handleMouseMove = (event: MouseEvent) => {
-      throttledTrackPosition(event.clientX, event.clientY)
-    }
 
     const joinRoom = async (roomNumber = 1) => {
       const room = supabase.channel(`room_${roomNumber}`, {
@@ -68,7 +182,6 @@ export function RealtimeRoom() {
           }
         })
         .on('presence', { event: 'sync' }, () => {
-          // Update state whenever any presence changes (including mouse movements)
           if (currentChannel) {
             setRoomState(prev => ({
               ...prev,
@@ -79,8 +192,7 @@ export function RealtimeRoom() {
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             await room.track({
-              x: 0,
-              y: 0,
+              isBlinking: false,
               online_at: new Date().toISOString(),
               room: roomNumber
             })
@@ -95,52 +207,52 @@ export function RealtimeRoom() {
       }
     })
 
-    // Add mouse move listener
-    window.addEventListener('mousemove', handleMouseMove)
-
     // Cleanup
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
       tempChannel.unsubscribe()
       if (currentChannel) {
         currentChannel.unsubscribe()
       }
+      window.webgazer.end()
     }
   }, [])
 
   return (
     <>
-      {/* Cursor elements for each participant */}
+      {/* Eyes for each participant */}
       {Object.entries(roomState.participants).map(([key, presences]) => {
-        const participant = presences[0] // Get first presence state for this participant
+        const participant = presences[0]
         return (
-          <div
+          <Eyes
             key={key}
-            className="fixed w-4 h-4 rounded-full bg-blue-500/50 pointer-events-none"
-            style={{
-              left: participant.x,
-              top: participant.y,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {/* Optional: Add a tooltip showing participant ID */}
-            <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/75 px-2 py-1 rounded text-white text-xs whitespace-nowrap">
-              {key.slice(0, 6)}
-            </div>
-          </div>
+            isBlinking={participant.isBlinking}
+          />
         )
       })}
 
-      {/* Existing debug panel */}
-      <div className="fixed bottom-4 left-4 bg-black/50 p-2 rounded text-white text-sm">
+      {/* Debug panel */}
+      <div className="fixed bottom-4 left-4 bg-black/50 p-2 rounded text-white text-sm space-y-2">
         <div>Connected Participants: {Object.keys(roomState.participants).length}</div>
+        
+        {/* Eye tracking debug info */}
+        <div className="space-y-1">
+          <div>Left Eye Brightness: {debugData.leftBrightness.toFixed(2)}</div>
+          <div>Right Eye Brightness: {debugData.rightBrightness.toFixed(2)}</div>
+          <div>Average Brightness: {debugData.avgBrightness.toFixed(2)}</div>
+          <div>Threshold: {BLINK_THRESHOLD}</div>
+          <div>Blinking: {debugData.isBlinking ? 'Yes' : 'No'}</div>
+          {debugData.error && (
+            <div className="text-red-400">Error: {debugData.error}</div>
+          )}
+        </div>
+
         <pre className="text-xs">
           {JSON.stringify(roomState.participants, null, 2)}
         </pre>
       </div>
     </>
   )
-} 
+}
 
 /**
  * Creates a throttled version of a function that can only be called at most once 
