@@ -1,4 +1,3 @@
-import './App.css'
 import { RealtimeRoom } from './components/RealtimeRoom'
 
 function App() {

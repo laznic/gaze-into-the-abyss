@@ -12,6 +12,8 @@ const THRESHOLD_MULTIPLIER = 1.2 // 30% above baseline
 interface Participant {
   isBlinking: boolean
   online_at: string
+  gazeX: number
+  gazeY: number
 }
 
 interface RoomState {
@@ -89,6 +91,10 @@ export function RealtimeRoom() {
         if (data == null || !currentChannel || !ctx) return
 
         try {
+          // Get normalized gaze coordinates
+          const gazeX = data.x / window.innerWidth
+          const gazeY = data.y / window.innerHeight
+
           // Get video element
           const videoElement = document.getElementById('webgazerVideoFeed') as HTMLVideoElement
           if (!videoElement) {
@@ -163,13 +169,13 @@ export function RealtimeRoom() {
             if (now - lastBlinkTime > 100) { // Minimum time between blink state changes
               isCurrentlyBlinking = blinkDetected
               lastBlinkTime = now
-              throttledTrackPosition(blinkDetected)
+              throttledTrackPosition(blinkDetected, gazeX, gazeY)
             }
           } else {
-            throttledTrackPosition(isCurrentlyBlinking)
+            throttledTrackPosition(isCurrentlyBlinking, gazeX, gazeY)
           }
         } catch (error) {
-          console.error('Error getting eye patches:', error)
+          console.error('Error processing gaze data:', error)
           setDebugData(prev => ({ ...prev, error: error?.toString() || 'Unknown error' }))
         }
       })
@@ -177,10 +183,12 @@ export function RealtimeRoom() {
       .begin()
 
     // Create throttled position tracking function
-    const throttledTrackPosition = createThrottledFunction((isBlinking: boolean) => {
+    const throttledTrackPosition = createThrottledFunction((isBlinking: boolean, gazeX: number, gazeY: number) => {
       if (currentChannel) {
         currentChannel.track({
           isBlinking,
+          gazeX,
+          gazeY,
           online_at: new Date().toISOString()
         })
       }
@@ -322,11 +330,15 @@ export function RealtimeRoom() {
               <Eyes
                 key={key}
                 isBlinking={participant.isBlinking}
+                gazeX={participant.gazeX}
+                gazeY={participant.gazeY}
               />
             )
           })}
         </>
       )}
+
+      
 
       {/* Debug panel */}
       <div className="fixed bottom-4 left-4 bg-black/50 p-2 rounded text-white text-sm space-y-2">
