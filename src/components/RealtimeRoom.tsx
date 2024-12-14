@@ -5,7 +5,9 @@ import Eyes from './Eyes'
 
 const MAX_PARTICIPANTS = 10
 const THROTTLE_MS = 33
-const BLINK_THRESHOLD = 30 // Adjust this value based on testing
+const BLINK_THRESHOLD = 80 // Adjust this value based on testing
+const SAMPLES_SIZE = 30 // Number of samples to keep for rolling average
+const THRESHOLD_MULTIPLIER = 1.2 // 30% above baseline
 
 interface Participant {
   isBlinking: boolean
@@ -74,6 +76,9 @@ export function RealtimeRoom() {
     const imageCanvas = document.createElement('canvas')
     const ctx = imageCanvas.getContext('2d')
 
+    // Add rolling brightness samples array
+    const brightnessSamples: number[] = []
+
     // Initialize WebGazer with blink detection
     window.webgazer
       .showPredictionPoints(true) // Show prediction points
@@ -115,6 +120,7 @@ export function RealtimeRoom() {
           // Calculate brightness for each eye
           const calculateBrightness = (imageData: ImageData) => {
             let total = 0
+
             for (let i = 0; i < imageData.data.length; i += 4) {
               // Convert RGB to grayscale
               const r = imageData.data[i]
@@ -129,6 +135,16 @@ export function RealtimeRoom() {
           const leftEyeBrightness = calculateBrightness(patches.left.patch)
           const avgBrightness = (rightEyeBrightness + leftEyeBrightness) / 2
 
+          // Update rolling average
+          if (brightnessSamples.length >= SAMPLES_SIZE) {
+            brightnessSamples.shift() // Remove oldest sample
+          }
+          brightnessSamples.push(avgBrightness)
+
+          // Calculate dynamic threshold from rolling average
+          const rollingAverage = brightnessSamples.reduce((a, b) => a + b, 0) / brightnessSamples.length
+          const dynamicThreshold = rollingAverage * THRESHOLD_MULTIPLIER
+
           // Update debug data
           setDebugData({
             leftBrightness: leftEyeBrightness,
@@ -138,13 +154,13 @@ export function RealtimeRoom() {
             error: null
           })
           
-          // Detect blink based on brightness threshold
-          const blinkDetected = avgBrightness > BLINK_THRESHOLD
+          // Detect blink using dynamic threshold
+          const blinkDetected = avgBrightness > dynamicThreshold
 
           // Debounce blink detection to avoid rapid changes
           if (blinkDetected !== isCurrentlyBlinking) {
             const now = Date.now()
-            if (now - lastBlinkTime > 150) { // Minimum time between blink state changes
+            if (now - lastBlinkTime > 100) { // Minimum time between blink state changes
               isCurrentlyBlinking = blinkDetected
               lastBlinkTime = now
               throttledTrackPosition(blinkDetected)
@@ -250,6 +266,7 @@ export function RealtimeRoom() {
     webgazer.showFaceOverlay(true)
     webgazer.showFaceFeedbackBox(true)
     webgazer.showPredictionPoints(true)
+    webgazer.applyKalmanFilter(true)
   }, [])
 
   const handleCalibrationClick = useCallback((event: React.MouseEvent) => {
