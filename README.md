@@ -1,50 +1,55 @@
-# React + TypeScript + Vite
+# Gaze into the Abyss
+![Social preview](/public/social-preview.png)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An experimental web experience where participants join virtual rooms and track each other's eye movements and blinks in real-time. Built for Supabase Launch Week 13 Hackathon.
 
-Currently, two official plugins are available:
+## 🌟 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Eye tracking and blink detection using WebGazer.js
+- Real-time synchronization of eye movements between participants
+- Dynamic room allocation with up to 10 participants per room
+- Ambient audio experience
+- Animated SVG eyes with realistic pupil movement and blinking
+- Atmospheric visual effects using SVG filters
 
-## Expanding the ESLint configuration
+## 🛠️ Built With
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- [React](https://react.dev/)
+- [Supabase Realtime](https://supabase.com/docs/guides/realtime)
+- [WebGazer.js](https://webgazer.cs.brown.edu/)
+- [Motion One](https://motion.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Stable Audio](https://www.stableaudio.com/)
 
-- Configure the top-level `parserOptions` property like this:
+## 🎮 How it Works
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+1. Allow camera access for eye tracking calibration
+2. Calibrate your eye movements by following the red dots
+3. Join a room automatically with other participants
+4. Watch as other participants' eyes appear and follow their gaze
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## 🎯 Technical Details
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- Uses WebGazer.js for real-time eye tracking and blink detection
+- Implements dynamic brightness threshold analysis for (somewhat) accurate blink detection
+- Supabase Realtime channels for synchronized participant states
+- Complex SVG animations for realistic eye movements and effects
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+## 🚀 Future Ideas
+
+- WebRTC integration for peer-to-peer audio
+- Enhanced audio processing for better whisper detection
+- Additional atmospheric elements
+
+## 👥 Created By
+
+- laznic ([GitHub](https://github.com/laznic), [Twitter](https://twitter.com/laznic))
+
+## 🙏 Thanks to
+
+- Brown University's WebGazer.js team
+- Supabase team for the realtime infrastructure
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
