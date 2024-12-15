@@ -73,6 +73,27 @@ const GRID_POSITIONS = [
   'bottomRight'  // 8: Bottom Right
 ]
 
+/**
+ * Creates a throttled version of a function that can only be called at most once 
+ * in the specified time period.
+ */
+function createThrottledFunction<T extends (...args: unknown[]) => unknown>(
+  functionToThrottle: T,
+  waitTimeMs: number
+): (...args: Parameters<T>) => void {
+  let isWaitingToExecute = false
+
+  return function throttledFunction(...args: Parameters<T>) {
+    if (!isWaitingToExecute) {
+      functionToThrottle.apply(this, args)
+      isWaitingToExecute = true
+      setTimeout(() => {
+        isWaitingToExecute = false
+      }, waitTimeMs)
+    }
+  }
+}
+
 export function RealtimeRoom() {
   const [roomState, setRoomState] = useState<RoomState>({
     channel: null,
@@ -104,6 +125,17 @@ export function RealtimeRoom() {
 
     // Add rolling brightness samples array
     const brightnessSamples: number[] = []
+
+    // Create throttled broadcast function
+    const throttledBroadcast = createThrottledFunction((data: EyeTrackingData) => {
+      if (currentChannel) {
+        currentChannel.send({
+          type: 'broadcast',
+          event: 'eye_tracking',
+          payload: data
+        })
+      }
+    }, THROTTLE_MS)
 
     // Initialize WebGazer with blink detection
     window.webgazer
@@ -196,16 +228,12 @@ export function RealtimeRoom() {
             }
           }
 
-          // Instead of using track, broadcast the eye tracking data
-          currentChannel.send({
-            type: 'broadcast',
-            event: 'eye_tracking',
-            payload: {
-              userId: userId.current,
-              isBlinking: isCurrentlyBlinking,
-              gazeX,
-              gazeY
-            }
+          // Use throttled broadcast instead of direct send
+          throttledBroadcast({
+            userId: userId.current,
+            isBlinking: isCurrentlyBlinking,
+            gazeX,
+            gazeY
           })
 
         } catch (error) {
@@ -489,38 +517,6 @@ export function RealtimeRoom() {
       </div>
     </>
   )
-}
-
-/**
- * Creates a throttled version of a function that can only be called at most once 
- * in the specified time period.
- * 
- * @param functionToThrottle The function to be throttled
- * @param waitTimeMs The minimum time that must pass between function calls
- * @returns A throttled version of the input function
- */
-function createThrottledFunction<T extends (...args: unknown[]) => unknown>(
-  functionToThrottle: T,
-  waitTimeMs: number
-): (...args: Parameters<T>) => void {
-  let isWaitingToExecute = false
-
-  return function throttledFunction(...args: Parameters<T>) {
-    // If we're not waiting, execute the function immediately
-    if (!isWaitingToExecute) {
-      // Call the original function
-      functionToThrottle.apply(this, args)
-      
-      // Set the waiting flag
-      isWaitingToExecute = true
-
-      // Start the timer to reset the waiting flag
-      setTimeout(() => {
-        isWaitingToExecute = false
-      }, waitTimeMs)
-    }
-    // If we are waiting, the function call is ignored
-  }
 }
 
 function findAvailablePosition(index: number): string {
