@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import Eyes from './Eyes'
 
 const MAX_PARTICIPANTS = 10
-const THROTTLE_MS = 33
+const THROTTLE_MS = 75
 const SAMPLES_SIZE = 30 // Number of samples to keep for rolling average
 const THRESHOLD_MULTIPLIER = 1.2 // 30% above baseline
 
