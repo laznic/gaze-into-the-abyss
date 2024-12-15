@@ -385,7 +385,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'cente
           custom={true}
           variants={eyelidVariants}
           animate={isBlinking ? "closed" : "open"}
-          fill="#0a0a0a"
+          fill="#000"
         />
         
         {/* Lower eyelid */}
@@ -393,7 +393,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'cente
           custom={false}
           variants={eyelidVariants}
           animate={isBlinking ? "closed" : "open"}
-          fill="#0a0a0a"
+          fill="#000"
         />
         
         {/* Top blurred lines */}

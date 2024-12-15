@@ -118,7 +118,7 @@ export function RealtimeRoom() {
   // Initialize WebGazer first
   useEffect(() => {
     window.webgazer
-      .showPredictionPoints(true)
+      .showPredictionPoints(false)
       .showVideo(false)
       .showFaceOverlay(false)
       .showFaceFeedbackBox(false)
@@ -164,10 +164,6 @@ export function RealtimeRoom() {
 
     // Initialize WebGazer with blink detection
     window.webgazer
-      .showPredictionPoints(true) // Show prediction points
-      .showVideo(false) // Optionally hide video feed
-      .showFaceOverlay(false) // Hide face overlay
-      .showFaceFeedbackBox(false) // Hide face feedback box
       .setGazeListener(async (data: any) => {
         if (data == null || !currentChannel || !ctx) return
 
@@ -267,7 +263,6 @@ export function RealtimeRoom() {
         }
       })
       .saveDataAcrossSessions(true)
-      .begin()
 
     const joinRoom = async (roomNumber = 1) => {
       const room = supabase.channel(`room_${roomNumber}`, {
@@ -402,7 +397,7 @@ export function RealtimeRoom() {
             // Only track position and room number in presence
             await room.track({
               online_at: new Date().toISOString(),
-              room: roomNumber
+              room: roomNumber,
             })
           }
         })
@@ -460,7 +455,7 @@ export function RealtimeRoom() {
     <>
       {!isWebgazerReady ? (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="text-white text-center">
+          <div className="text-white text-center font-serif text-md">
             Initializing eye tracking...
           </div>
         </div>
@@ -468,21 +463,22 @@ export function RealtimeRoom() {
         isCalibrating ? (
           <div 
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={handleCalibrationClick}
           >
             {calibrationPoints.map((point, index) => (
               <div
                 key={index}
+                onClick={handleCalibrationClick}
                 className={`absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 ${
-                  index === currentPoint ? 'bg-red-500 animate-pulse' : 'bg-gray-500'
+                  index === currentPoint ? 'bg-red-500 cursor-pointer pulsate' : 'bg-gray-500'
                 } z-50`}
                 style={{
                   left: `${point.x * 100}%`,
                   top: `${point.y * 100}%`,
                 }}
-              />
+              >
+              </div>
             ))}
-            <div className="text-white text-center z-50">
+            <div className="text-white text-center z-50 font-serif text-md mb-24">
               Click the red dot to calibrate ({currentPoint + 1}/{calibrationPoints.length})
             </div>
           </div>
@@ -490,7 +486,7 @@ export function RealtimeRoom() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <button 
               onClick={startCalibration}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="calibration-button hover:border-white transition-all text-white py-2 px-4 rounded font-serif text-md italic"
             >
               Start Calibration
             </button>
@@ -522,32 +518,7 @@ export function RealtimeRoom() {
       )}
 
       {/* Debug panel - only show when in room */}
-      {hasCalibrated && (
-        <div className="fixed bottom-4 left-4 bg-black/50 p-2 rounded text-white text-sm space-y-2">
-          <button 
-            onClick={startCalibration}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Recalibrate WebGazer
-          </button>
-          <div>Connected Participants: {Object.keys(roomState.participants).length}</div>
-          
-          {/* Eye tracking debug info */}
-          <div className="space-y-1">
-            <div>Left Eye Brightness: {debugData.leftBrightness.toFixed(2)}</div>
-            <div>Right Eye Brightness: {debugData.rightBrightness.toFixed(2)}</div>
-            <div>Average Brightness: {debugData.avgBrightness.toFixed(2)}</div>
-            <div>Blinking: {debugData.isBlinking ? 'Yes' : 'No'}</div>
-            {debugData.error && (
-              <div className="text-red-400">Error: {debugData.error}</div>
-            )}
-          </div>
 
-          <pre className="text-xs">
-            {JSON.stringify(roomState.participants, null, 2)}
-          </pre>
-        </div>
-      )}
     </>
   )
 }

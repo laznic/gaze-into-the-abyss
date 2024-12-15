@@ -42,3 +42,24 @@ rect {
     transform: rotate(360deg);
   }
 }
+
+.pulsate {
+  animation: pulsate 2s infinite;
+}
+
+@keyframes pulsate {
+  0% {
+    box-shadow: 0 0 0 0px rgba(255, 0, 0, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(255, 0, 0, 0);
+  }
+}
+
+.calibration-button {
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.calibration-button:hover {
+  box-shadow: 0 0 60px 0 rgba(255, 255, 255, 0.2);
+}

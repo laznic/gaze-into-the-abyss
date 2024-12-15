@@ -24,7 +24,7 @@ export default function Main() {
 
   return (
     <div className="container mx-auto max-w-3xl h-screen flex flex-col justify-center items-center relative">
-      <blockquote className="text-neutral-100 mb-4 font-serif text-3xl leading-none z-10" data-splitting>
+      <blockquote className="text-neutral-100 mb-4 font-serif text-3xl leading-none z-10 italic" data-splitting>
         If you gaze long into an abyss, the abyss also gazes into you.
         <cite className="text-neutral-500 text-base mt-4 block text-right">
           - Friedrich Nietzsche
