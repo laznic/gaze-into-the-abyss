@@ -38,7 +38,6 @@ function App() {
       </svg>
       <div className="fixed inset-0 w-[95vw] h-[95vh] bg-black rounded-full blur-[128px] m-auto" />
 
-      {/* Routes */}
       <Routes>  
         <Route path="/room" element={<RealtimeRoom />} />
         <Route path="/" element={<Main />} />
