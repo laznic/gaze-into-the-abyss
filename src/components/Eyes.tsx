@@ -8,6 +8,33 @@ interface EyesProps {
   alignment?: 'start' | 'center' | 'end'
 }
 
+const containerVariants = {
+  initial: {
+    scale: 0.7,
+    opacity: 0,
+    y: 10
+  },
+  animate: {
+    scale: 1,
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.23, 1.1, 0.32, 1],
+      delay: 0.2
+    }
+  },
+  exit: {
+    scale: 0.7,
+    opacity: 0,
+    y: 10,
+    transition: {
+      duration: 0.3,
+      ease: "easeIn"
+    }
+  }
+}
+
 const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'center' }: EyesProps) => {
   // Calculate pupil offset based on gaze (limit the movement range)
   const pupilOffsetX = (gazeX - 0.5) * 40  // Max 15px movement left/right
@@ -165,7 +192,13 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'cente
   }
 
   return (
-    <div className={`w-full h-full flex items-center justify-center`}>
+    <motion.div 
+      className={`w-full h-full flex items-center justify-center`}
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
       <svg
         className={`w-full h-full self-${alignment} max-w-[350px] max-h-[235px]`}
         viewBox="-50 0 350 235"
@@ -424,7 +457,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'cente
           />
         </g>
       </svg>
-    </div>
+    </motion.div>
   )
 }
 
