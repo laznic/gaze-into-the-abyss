@@ -7,6 +7,7 @@ export function useAudio(src: string) {
     const audio = new Audio(src)
     audio.loop = true
     audioRef.current = audio
+    audio.volume = 0.4
 
     return () => {
       audio.pause()

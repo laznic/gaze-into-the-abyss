@@ -20,14 +20,6 @@ interface RoomState {
   participants: RealtimePresenceState<Participant>
 }
 
-interface DebugData {
-  leftBrightness: number
-  rightBrightness: number
-  avgBrightness: number
-  isBlinking: boolean
-  error: string | null
-}
-
 interface CalibrationPoint {
   x: number
   y: number
@@ -100,13 +92,7 @@ export function RealtimeRoom() {
     channel: null,
     participants: {}
   })
-  const [debugData, setDebugData] = useState<DebugData>({
-    leftBrightness: 0,
-    rightBrightness: 0,
-    avgBrightness: 0,
-    isBlinking: false,
-    error: null
-  })
+
   const [isCalibrating, setIsCalibrating] = useState(false)
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([])
   const [currentPoint, setCurrentPoint] = useState(0)
@@ -128,6 +114,7 @@ export function RealtimeRoom() {
       .showVideo(false)
       .showFaceOverlay(false)
       .showFaceFeedbackBox(false)
+      .saveDataAcrossSessions(true)
       .begin()
       .then(() => {
         setIsWebgazerReady(true)
@@ -181,7 +168,7 @@ export function RealtimeRoom() {
           // Get video element
           const videoElement = document.getElementById('webgazerVideoFeed') as HTMLVideoElement
           if (!videoElement) {
-            setDebugData(prev => ({ ...prev, error: 'Video feed not found' }))
+            console.error('WebGazer video element not found')
             return
           }
 
@@ -202,7 +189,7 @@ export function RealtimeRoom() {
           )
 
           if (!patches?.right?.patch?.data || !patches?.left?.patch?.data) {
-            setDebugData(prev => ({ ...prev, error: 'No eye patches detected' }))
+            console.error('No eye patches detected')
             return
           }
 
@@ -233,16 +220,6 @@ export function RealtimeRoom() {
           // Calculate dynamic threshold from rolling average
           const rollingAverage = brightnessSamples.reduce((a, b) => a + b, 0) / brightnessSamples.length
           const dynamicThreshold = rollingAverage * THRESHOLD_MULTIPLIER
-
-          // Update debug data
-          setDebugData({
-            leftBrightness: leftEyeBrightness,
-            rightBrightness: rightEyeBrightness,
-            avgBrightness,
-            isBlinking: isCurrentlyBlinking,
-            error: null
-          })
-          
           // Detect blink using dynamic threshold
           const blinkDetected = avgBrightness > dynamicThreshold
 
@@ -265,10 +242,9 @@ export function RealtimeRoom() {
 
         } catch (error) {
           console.error('Error processing gaze data:', error)
-          setDebugData(prev => ({ ...prev, error: error?.toString() || 'Unknown error' }))
         }
       })
-      .saveDataAcrossSessions(true)
+
 
     const joinRoom = async (roomNumber = 1) => {
       const room = supabase.channel(`room_${roomNumber}`, {
@@ -528,9 +504,6 @@ export function RealtimeRoom() {
           })}
         </div>
       )}
-
-      {/* Debug panel - only show when in room */}
-
     </>
   )
 }
