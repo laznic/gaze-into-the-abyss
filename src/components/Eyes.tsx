@@ -61,7 +61,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
     open: (isUpper: boolean) => ({
       d: isUpper 
         ? "M10 86C23.8 68 66.6 33 127 36.2C202.4 40.3 240.4 101.5 251 103C240.4 101.5 202.4 40.3 127 36.2C66.6 33 23.8 68 10 86Z"
-        : "M251 138C237.2 156 194.4 191 134 187.8C58.6 183.7 20.6 122.5 10 121C20.6 122.5 58.6 183.7 134 187.8C194.4 191 237.2 156 251 138Z",
+        : "M251 148C237.2 166 194.4 201 134 197.8C58.6 193.7 20.6 132.5 10 131C20.6 132.5 58.6 193.7 134 197.8C194.4 201 237.2 166 251 148Z",
       transition: {
         duration: 0.4,
         ease: "easeOut"
@@ -80,7 +80,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
     open: (isUpper: boolean) => ({
       d: isUpper
         ? "M-7 49C24.8 47.8 102 -10 190 38C244 67.5 279 107 291.5 103C279 107 244 67.5 190 38C102 -10 24.8 47.8 -7 49Z"
-        : "M278 139C246.8 145.3 180 214 85.4 181C27.3 160.6 -13.6 127 -25 133.5C-13.6 127 27.3 160.6 85.4 181C180 214 246.8 145.3 278 139Z",
+        : "M278 149C246.8 155.3 180 224 85.4 191C27.3 170.6 -13.6 137 -25 143.5C-13.6 137 27.3 170.6 85.4 191C180 224 246.8 155.3 278 149Z",
       transition: {
         duration: 0.4,
         ease: "easeOut"
@@ -99,7 +99,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
     open: (isUpper: boolean) => ({
       d: isUpper
         ? "M29 36C100 -5.7 166 6.7 228 46C166 6.7 100 -5.7 29 36Z"
-        : "M228 155C157 197 91 184 29 145C91 184 157 197 228 155Z",
+        : "M228 165C157 207 91 194 29 155C91 194 157 207 228 165Z",
       transition: {
         duration: 0.4,
         ease: "easeOut"
@@ -163,26 +163,22 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
               <stop offset="100%" stopColor="rgba(0,0,0,0)" />
             </radialGradient>
 
-            <filter id="drop-shadow" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
-              <feDropShadow stdDeviation="5 10" in="blur" dx="0" dy="5" flood-color="#000" flood-opacity="0.5" x="0%" y="0%" width="100%" height="100%" result="dropShadow"/>
-            </filter>
-
-            <filter id="filter0_f_302_14" x="-5" y="25.2998" width="282.4" height="88.4005" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <filter id="filter0_f_302_14" x="-5" y="25.2998" width="282.4" height="88.4005" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feGaussianBlur stdDeviation="4.1" result="effect1_foregroundBlur_302_14"/>
             </filter>
-            <filter id="filter1_f_302_14" x="-5" y="110.3" width="282.4" height="88.4005" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <filter id="filter1_f_302_14" x="-5" y="120.3" width="282.4" height="88.4005" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feGaussianBlur stdDeviation="4.1" result="effect1_foregroundBlur_302_14"/>
             </filter>
-            <filter id="filter2_f_302_14" x="-21.7" y="1.30036" width="333.901" height="119.435" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <filter id="filter2_f_302_14" x="-21.7" y="1.30036" width="333.901" height="119.435" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feGaussianBlur stdDeviation="7.6" result="effect1_foregroundBlur_302_14"/>
             </filter>
-            <filter id="filter3_f_302_14" x="-39.6396" y="114.991" width="338.703" height="92.5252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <filter id="filter3_f_302_14" x="-39.6396" y="124.991" width="338.703" height="92.5252" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feGaussianBlur stdDeviation="7.6" result="effect1_foregroundBlur_302_14"/>
             </filter>
-            <filter id="filter4_f_302_14" x="22.7996" y="0.799973" width="217.401" height="54.4003" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <filter id="filter4_f_302_14" x="22.7996" y="0.799973" width="217.401" height="54.4003" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feGaussianBlur stdDeviation="3.35" result="effect1_foregroundBlur_302_14"/>
             </filter>
-            <filter id="filter5_f_302_14" x="22.7997" y="135.8" width="217.401" height="54.4004" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <filter id="filter5_f_302_14" x="22.7997" y="145.8" width="217.401" height="54.4004" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feGaussianBlur stdDeviation="3.35" result="effect1_foregroundBlur_302_14"/>
             </filter>
           </defs>
@@ -199,18 +195,18 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
 
           {/* After the main eyeball ellipse but before the eyelids, add the corner shadows */}
           <ellipse
-            cx="60"
+            cx="50"
             cy="117.5"
-            rx="90"
-            ry="120"
+            rx="50"
+            ry="90"
             fill="url(#corner-gradient-left)"
           />
 
           <ellipse
-            cx="202"
+            cx="205"
             cy="117.5"
-            rx="90"
-            ry="120"
+            rx="50"
+            ry="90"
             fill="url(#corner-gradient-right)"
           />
 
@@ -252,7 +248,6 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
             variants={eyelidVariants}
             animate={isBlinking ? "closed" : "open"}
             fill="#0a0a0a"
-            filter="url(#drop-shadow)"
           />
           
           {/* Lower eyelid */}

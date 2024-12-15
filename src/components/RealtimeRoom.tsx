@@ -84,9 +84,9 @@ export function RealtimeRoom() {
     // Initialize WebGazer with blink detection
     window.webgazer
       .showPredictionPoints(true) // Show prediction points
-      // .showVideo(false) // Optionally hide video feed
-      // .showFaceOverlay(false) // Hide face overlay
-      // .showFaceFeedbackBox(false) // Hide face feedback box
+      .showVideo(false) // Optionally hide video feed
+      .showFaceOverlay(false) // Hide face overlay
+      .showFaceFeedbackBox(false) // Hide face feedback box
       .setGazeListener(async (data: any) => {
         if (data == null || !currentChannel || !ctx) return
 
@@ -270,11 +270,11 @@ export function RealtimeRoom() {
     // Update WebGazer settings one at a time
     const webgazer = window.webgazer
     webgazer.clearData()
-    webgazer.showVideo(true)
-    webgazer.showFaceOverlay(true)
-    webgazer.showFaceFeedbackBox(true)
-    webgazer.showPredictionPoints(true)
-    webgazer.applyKalmanFilter(true)
+    // webgazer.showVideo(true)
+    // webgazer.showFaceOverlay(true)
+    // webgazer.showFaceFeedbackBox(true)
+    // webgazer.showPredictionPoints(true)
+    // webgazer.applyKalmanFilter(true)
   }, [])
 
   const handleCalibrationClick = useCallback((event: React.MouseEvent) => {
@@ -291,10 +291,10 @@ export function RealtimeRoom() {
       setIsCalibrating(false)
       // Update WebGazer settings one at a time
       const webgazer = window.webgazer
-      webgazer.showVideo(false)
-      webgazer.showFaceOverlay(false)
-      webgazer.showFaceFeedbackBox(false)
-      webgazer.showPredictionPoints(true)
+      // webgazer.showVideo(false)
+      // webgazer.showFaceOverlay(false)
+      // webgazer.showFaceFeedbackBox(false)
+      // webgazer.showPredictionPoints(true)
     }
   }, [isCalibrating, currentPoint, calibrationPoints.length])
 
