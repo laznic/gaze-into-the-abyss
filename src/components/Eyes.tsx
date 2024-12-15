@@ -167,7 +167,7 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'cente
   return (
     <div className={`w-full h-full flex items-center justify-center`}>
       <svg
-        className={`w-fit h-fit self-${alignment}`}
+        className={`w-full h-full self-${alignment} max-w-[350px] max-h-[235px]`}
         viewBox="-50 0 350 235"
         preserveAspectRatio="xMidYMid meet"
       >

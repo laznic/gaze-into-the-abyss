@@ -269,11 +269,10 @@ export function RealtimeRoom() {
               
               if (!position) {
                 // Only calculate new position if we don't have one stored
-                const existingPositions = Object.values(updatedState).map(p => p[0].position!)
                 const positionIndex = Object.keys(updatedState)
                   .filter(key => key !== userId.current)
                   .length
-                position = findAvailablePosition(positionIndex, existingPositions)
+                position = findAvailablePosition(positionIndex)
                 // Store the new position
                 assignedPositions.current.set(k, position)
               }
@@ -312,11 +311,10 @@ export function RealtimeRoom() {
               
               if (!position) {
                 // Only calculate new position if we don't have one stored
-                const existingPositions = Object.values(updatedState).map(p => p[0].position!)
                 const positionIndex = Object.keys(updatedState)
                   .filter(key => key !== userId.current)
                   .length
-                position = findAvailablePosition(positionIndex, existingPositions)
+                position = findAvailablePosition(positionIndex)
                 // Store the new position
                 assignedPositions.current.set(k, position)
               }
@@ -337,12 +335,7 @@ export function RealtimeRoom() {
               gazeX: 0.5,
               gazeY: 0.5,
               online_at: new Date().toISOString(),
-              room: roomNumber,
-              position: findAvailablePosition(
-                Object.keys(room.presenceState<Participant>())
-                  .filter(key => key !== userId.current)
-                  .length
-              )
+              room: roomNumber
             })
           }
         })
