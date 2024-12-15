@@ -27,9 +27,9 @@ function App() {
             </feGaussianBlur>
             <feColorMatrix
               type="matrix"
-              values="-1 0 0 0 -1
-                      0 -1 0 0 -1
-                      0 0 -1 0 -1
+              values="1 0 0 0 1
+                      0 1 0 0 1
+                      0 0 1 0 1
                       0 0 0 25 -13"
             />
           </filter>
