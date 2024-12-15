@@ -4,9 +4,11 @@ interface EyesProps {
   isBlinking: boolean
   gazeX?: number
   gazeY?: number
+  position?: { x: number, y: number }
+  alignment?: 'start' | 'center' | 'end'
 }
 
-const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
+const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5, alignment = 'center' }: EyesProps) => {
   // Calculate pupil offset based on gaze (limit the movement range)
   const pupilOffsetX = (gazeX - 0.5) * 40  // Max 15px movement left/right
   const pupilOffsetY = (gazeY - 0.5) * 30  // Max 10px movement up/down
@@ -163,267 +165,265 @@ const Eyes = ({ isBlinking = false, gazeX = 0.5, gazeY = 0.5 }: EyesProps) => {
   }
 
   return (
-    <div className="fixed inset-0 pointer-events-none">
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <svg
-          width="300"
-          height="235"
-          viewBox="-50 0 350 235"
-        >
-          {/* Definitions for gradients and filters */}
-          <defs>
-            <filter id="pupil-blur">
-              <feGaussianBlur stdDeviation="0.75" />
-            </filter>
-            <radialGradient id="eyeball-gradient">
-              <stop offset="60%" stopColor="#dcdae0" />
-              <stop offset="100%" stopColor="#a8a7ad" />
-            </radialGradient>
-            <radialGradient 
-              id="pupil-gradient"
-              cx="0.35"
-              cy="0.35"
-              r="0.65"
-            >
-              <stop offset="0%" stopColor="#444" />
-              <stop offset="75%" stopColor="#000" />
-              <stop offset="100%" stopColor="#000" />
-            </radialGradient>
-            <radialGradient 
-              id="corner-gradient-left"
-              cx="0.3"
-              cy="0.5"
-              r="0.25"
-              gradientUnits="objectBoundingBox"
-            >
-              <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
-              <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-            </radialGradient>
-
-            <radialGradient 
-              id="corner-gradient-right"
-              cx="0.7"
-              cy="0.5"
-              r="0.25"
-              gradientUnits="objectBoundingBox"
-            >
-              <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
-              <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-            </radialGradient>
-
-            <filter id="filter0_f_302_14" x="-25" y="0" width="320" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="4.1" result="effect1_foregroundBlur_302_14"/>
-            </filter>
-            <filter id="filter1_f_302_14" x="-25" y="85" width="320" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="4.1" result="effect1_foregroundBlur_302_14"/>
-            </filter>
-            <filter id="filter2_f_302_14" x="-50" y="-30" width="400" height="170" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="7.6" result="effect1_foregroundBlur_302_14"/>
-            </filter>
-            <filter id="filter3_f_302_14" x="-50" y="95" width="400" height="170" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="7.6" result="effect1_foregroundBlur_302_14"/>
-            </filter>
-            <filter id="filter4_f_302_14" x="0" y="-20" width="260" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="3.35" result="effect1_foregroundBlur_302_14"/>
-            </filter>
-            <filter id="filter5_f_302_14" x="0" y="105" width="260" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="3.35" result="effect1_foregroundBlur_302_14"/>
-            </filter>
-          </defs>
-
-          {/* Eyeball */}
-          <ellipse
-            cx="131"
-            cy="117.5"
-            rx="100"
-            ry="65"
-            fill="url(#eyeball-gradient)"
-          />
-
-          {/* After the main eyeball ellipse but before the eyelids, add the corner shadows */}
-          <ellipse
-            cx="50"
-            cy="117.5"
-            rx="50"
-            ry="90"
-            fill="url(#corner-gradient-left)"
-          />
-
-          <ellipse
-            cx="205"
-            cy="117.5"
-            rx="50"
-            ry="90"
-            fill="url(#corner-gradient-right)"
-          />
-
-          {/* Corner reflections - repositioned diagonally */}
-          <circle
-            cx={45}
-            cy={135}
-            r="1.5"
-            fill="white"
-            className="opacity-60"
-          />
-          <circle
-            cx={215}
-            cy={100}
-            r="2"
-            fill="white"
-            className="opacity-60"
-          />
-
-          {/* Smaller companion reflections - repositioned diagonally */}
-          <circle
-            cx={35}
-            cy={120}
-            r="1"
-            fill="white"
-            className="opacity-40"
-          />
-          <circle
-            cx={222}
-            cy={110}
-            r="1.5"
-            fill="white"
-            className="opacity-40"
-          />
-
-          {/* Pupil group with animations */}
-          <motion.g
-            variants={pupilVariants}
-            animate={isBlinking ? "hidden" : "visible"}
+    <div className={`w-full h-full flex items-center justify-center`}>
+      <svg
+        className={`w-fit h-fit self-${alignment}`}
+        viewBox="-50 0 350 235"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* Definitions for gradients and filters */}
+        <defs>
+          <filter id="pupil-blur">
+            <feGaussianBlur stdDeviation="0.75" />
+          </filter>
+          <radialGradient id="eyeball-gradient">
+            <stop offset="60%" stopColor="#dcdae0" />
+            <stop offset="100%" stopColor="#a8a7ad" />
+          </radialGradient>
+          <radialGradient 
+            id="pupil-gradient"
+            cx="0.35"
+            cy="0.35"
+            r="0.65"
           >
-            {/* Pupil */}
-            <motion.ellipse
-              cx={131}
-              cy={117.5}
-              rx="50"
-              ry="50"
-              fill="url(#pupil-gradient)"
-              filter="url(#pupil-blur)"
-              animate={{
-                cx: 131 + pupilOffsetX,
-                cy: 117.5 + pupilOffsetY
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 30
-              }}
-            />
+            <stop offset="0%" stopColor="#444" />
+            <stop offset="75%" stopColor="#000" />
+            <stop offset="100%" stopColor="#000" />
+          </radialGradient>
+          <radialGradient 
+            id="corner-gradient-left"
+            cx="0.3"
+            cy="0.5"
+            r="0.25"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+          </radialGradient>
 
-            {/* Light reflections */}
-            <motion.circle
-              cx={111}
-              cy={102.5}
-              r="5"
-              fill="white"
-              animate={{
-                cx: 111 + pupilOffsetX,
-                cy: 102.5 + pupilOffsetY
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 30
-              }}
-            />
-            <motion.circle
-              cx={124}
-              cy={102.5}
-              r="3"
-              fill="white"
-              animate={{
-                cx: 124 + pupilOffsetX,
-                cy: 102.5 + pupilOffsetY
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 30
-              }}
-            />
-          </motion.g>
+          <radialGradient 
+            id="corner-gradient-right"
+            cx="0.7"
+            cy="0.5"
+            r="0.25"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+          </radialGradient>
 
-          {/* Upper eyelid */}
-          <motion.path 
+          <filter id="filter0_f_302_14" x="-25" y="0" width="320" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation="4.1" result="effect1_foregroundBlur_302_14"/>
+          </filter>
+          <filter id="filter1_f_302_14" x="-25" y="85" width="320" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation="4.1" result="effect1_foregroundBlur_302_14"/>
+          </filter>
+          <filter id="filter2_f_302_14" x="-50" y="-30" width="400" height="170" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation="7.6" result="effect1_foregroundBlur_302_14"/>
+          </filter>
+          <filter id="filter3_f_302_14" x="-50" y="95" width="400" height="170" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation="7.6" result="effect1_foregroundBlur_302_14"/>
+          </filter>
+          <filter id="filter4_f_302_14" x="0" y="-20" width="260" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation="3.35" result="effect1_foregroundBlur_302_14"/>
+          </filter>
+          <filter id="filter5_f_302_14" x="0" y="105" width="260" height="150" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation="3.35" result="effect1_foregroundBlur_302_14"/>
+          </filter>
+        </defs>
+
+        {/* Eyeball */}
+        <ellipse
+          cx="131"
+          cy="117.5"
+          rx="100"
+          ry="65"
+          fill="url(#eyeball-gradient)"
+        />
+
+        {/* After the main eyeball ellipse but before the eyelids, add the corner shadows */}
+        <ellipse
+          cx="50"
+          cy="117.5"
+          rx="50"
+          ry="90"
+          fill="url(#corner-gradient-left)"
+        />
+
+        <ellipse
+          cx="205"
+          cy="117.5"
+          rx="50"
+          ry="90"
+          fill="url(#corner-gradient-right)"
+        />
+
+        {/* Corner reflections - repositioned diagonally */}
+        <circle
+          cx={45}
+          cy={135}
+          r="1.5"
+          fill="white"
+          className="opacity-60"
+        />
+        <circle
+          cx={215}
+          cy={100}
+          r="2"
+          fill="white"
+          className="opacity-60"
+        />
+
+        {/* Smaller companion reflections - repositioned diagonally */}
+        <circle
+          cx={35}
+          cy={120}
+          r="1"
+          fill="white"
+          className="opacity-40"
+        />
+        <circle
+          cx={222}
+          cy={110}
+          r="1.5"
+          fill="white"
+          className="opacity-40"
+        />
+
+        {/* Pupil group with animations */}
+        <motion.g
+          variants={pupilVariants}
+          animate={isBlinking ? "hidden" : "visible"}
+        >
+          {/* Pupil */}
+          <motion.ellipse
+            cx={131}
+            cy={117.5}
+            rx="50"
+            ry="50"
+            fill="url(#pupil-gradient)"
+            filter="url(#pupil-blur)"
+            animate={{
+              cx: 131 + pupilOffsetX,
+              cy: 117.5 + pupilOffsetY
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30
+            }}
+          />
+
+          {/* Light reflections */}
+          <motion.circle
+            cx={111}
+            cy={102.5}
+            r="5"
+            fill="white"
+            animate={{
+              cx: 111 + pupilOffsetX,
+              cy: 102.5 + pupilOffsetY
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30
+            }}
+          />
+          <motion.circle
+            cx={124}
+            cy={102.5}
+            r="3"
+            fill="white"
+            animate={{
+              cx: 124 + pupilOffsetX,
+              cy: 102.5 + pupilOffsetY
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30
+            }}
+          />
+        </motion.g>
+
+        {/* Upper eyelid */}
+        <motion.path 
+          custom={true}
+          variants={eyelidVariants}
+          animate={isBlinking ? "closed" : "open"}
+          fill="#0a0a0a"
+        />
+        
+        {/* Lower eyelid */}
+        <motion.path 
+          custom={false}
+          variants={eyelidVariants}
+          animate={isBlinking ? "closed" : "open"}
+          fill="#0a0a0a"
+        />
+        
+        {/* Top blurred lines */}
+        <g filter="url(#filter0_f_302_14)">
+          <motion.path
             custom={true}
-            variants={eyelidVariants}
+            variants={blurredLineVariants}
             animate={isBlinking ? "closed" : "open"}
-            fill="#0a0a0a"
+            stroke="#2A2A2A"
+            strokeWidth="5"
+            strokeLinecap="round"
           />
-          
-          {/* Lower eyelid */}
-          <motion.path 
-            custom={false}
-            variants={eyelidVariants}
+        </g>
+        <g filter="url(#filter2_f_302_14)">
+          <motion.path
+            custom={true}
+            variants={outerBlurredLineVariants}
             animate={isBlinking ? "closed" : "open"}
-            fill="#0a0a0a"
+            stroke="#777777"
+            strokeWidth="5"
+            strokeLinecap="round"
           />
-          
-          {/* Top blurred lines */}
-          <g filter="url(#filter0_f_302_14)">
-            <motion.path
-              custom={true}
-              variants={blurredLineVariants}
-              animate={isBlinking ? "closed" : "open"}
-              stroke="#2A2A2A"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-          </g>
-          <g filter="url(#filter2_f_302_14)">
-            <motion.path
-              custom={true}
-              variants={outerBlurredLineVariants}
-              animate={isBlinking ? "closed" : "open"}
-              stroke="#777777"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-          </g>
-          <g filter="url(#filter4_f_302_14)">
-            <motion.path
-              custom={true}
-              variants={arcLineVariants}
-              animate={isBlinking ? "closed" : "open"}
-              stroke="#838383"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-          </g>
-          
-          {/* Bottom blurred lines */}
-          <g filter="url(#filter1_f_302_14)">
-            <motion.path
-              variants={bottomBlurredLineVariants}
-              animate={isBlinking ? "closed" : "open"}
-              stroke="#2A2A2A"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-          </g>
-          <g filter="url(#filter3_f_302_14)">
-            <motion.path
-              variants={bottomOuterBlurredLineVariants}
-              animate={isBlinking ? "closed" : "open"}
-              stroke="#777777"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-          </g>
-          <g filter="url(#filter5_f_302_14)">
-            <motion.path
-              variants={bottomArcLineVariants}
-              animate={isBlinking ? "closed" : "open"}
-              stroke="#838383"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-          </g>
-        </svg>
-      </div>
+        </g>
+        <g filter="url(#filter4_f_302_14)">
+          <motion.path
+            custom={true}
+            variants={arcLineVariants}
+            animate={isBlinking ? "closed" : "open"}
+            stroke="#838383"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </g>
+        
+        {/* Bottom blurred lines */}
+        <g filter="url(#filter1_f_302_14)">
+          <motion.path
+            variants={bottomBlurredLineVariants}
+            animate={isBlinking ? "closed" : "open"}
+            stroke="#2A2A2A"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </g>
+        <g filter="url(#filter3_f_302_14)">
+          <motion.path
+            variants={bottomOuterBlurredLineVariants}
+            animate={isBlinking ? "closed" : "open"}
+            stroke="#777777"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </g>
+        <g filter="url(#filter5_f_302_14)">
+          <motion.path
+            variants={bottomArcLineVariants}
+            animate={isBlinking ? "closed" : "open"}
+            stroke="#838383"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </g>
+      </svg>
     </div>
   )
 }

@@ -1,11 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import Eyes from './Eyes'
 
 const MAX_PARTICIPANTS = 10
 const THROTTLE_MS = 33
-const BLINK_THRESHOLD = 80 // Adjust this value based on testing
 const SAMPLES_SIZE = 30 // Number of samples to keep for rolling average
 const THRESHOLD_MULTIPLIER = 1.2 // 30% above baseline
 
@@ -14,6 +13,8 @@ interface Participant {
   online_at: string
   gazeX: number
   gazeY: number
+  position?: Position
+  room?: number
 }
 
 interface RoomState {
@@ -30,6 +31,11 @@ interface DebugData {
 }
 
 interface CalibrationPoint {
+  x: number
+  y: number
+}
+
+interface Position {
   x: number
   y: number
 }
@@ -51,6 +57,18 @@ declare global {
   }
 }
 
+const GRID_POSITIONS = [
+  'center',      // 0: Center
+  'middleLeft',  // 1: Left
+  'middleRight', // 2: Right
+  'topCenter',   // 3: Top
+  'bottomCenter',// 4: Bottom
+  'topLeft',     // 5: Top Left
+  'topRight',    // 6: Top Right
+  'bottomLeft',  // 7: Bottom Left
+  'bottomRight'  // 8: Bottom Right
+]
+
 export function RealtimeRoom() {
   const [roomState, setRoomState] = useState<RoomState>({
     channel: null,
@@ -66,11 +84,12 @@ export function RealtimeRoom() {
   const [isCalibrating, setIsCalibrating] = useState(false)
   const [calibrationPoints, setCalibrationPoints] = useState<CalibrationPoint[]>([])
   const [currentPoint, setCurrentPoint] = useState(0)
+  const userId = useRef(window.crypto.randomUUID())
+  const assignedPositions = useRef<Map<string, Position>>(new Map())
 
   useEffect(() => {
     let currentChannel: RealtimeChannel | null = null
     const tempChannel = supabase.channel('room_discovery')
-    const userId = window.crypto.randomUUID()
     let lastBlinkTime = Date.now()
     let isCurrentlyBlinking = false
 
@@ -185,11 +204,22 @@ export function RealtimeRoom() {
     // Create throttled position tracking function
     const throttledTrackPosition = createThrottledFunction((isBlinking: boolean, gazeX: number, gazeY: number) => {
       if (currentChannel) {
+        const presenceState = currentChannel.presenceState<Participant>()
+        const myPresence = presenceState[userId.current]?.[0]
+        
+        if (!myPresence) {
+          console.error('No presence found for current user')
+          return
+        }
+
+        // Track with all current data, preserving position
         currentChannel.track({
           isBlinking,
           gazeX,
           gazeY,
-          online_at: new Date().toISOString()
+          online_at: new Date().toISOString(),
+          position: myPresence.position,  // Preserve existing position
+          room: myPresence.room          // Preserve room number
         })
       }
     }, THROTTLE_MS)
@@ -198,7 +228,7 @@ export function RealtimeRoom() {
       const room = supabase.channel(`room_${roomNumber}`, {
         config: {
           presence: {
-            key: userId
+            key: userId.current
           }
         }
       })
@@ -206,24 +236,97 @@ export function RealtimeRoom() {
       room
         .on('presence', { event: 'join' }, ({ key }) => {
           const presenceState = room.presenceState<Participant>()
-          const presencesWithoutMe = Object.keys(presenceState).filter(key => key !== userId)
+          const presencesWithoutMe = Object.keys(presenceState).filter(key => key !== userId.current)
           
-          if (key === userId && presencesWithoutMe.length >= MAX_PARTICIPANTS) {
+          if (key === userId.current && presencesWithoutMe.length >= MAX_PARTICIPANTS) {
             room.unsubscribe()
             joinRoom(roomNumber + 1)
           } else {
             currentChannel = room
+            
+            // Get all participants with positions first
+            const participantsWithPositions = Object.entries(presenceState)
+              .filter(([_, presences]) => presences[0].position)
+              .sort((a, b) => a[1][0].online_at.localeCompare(b[1][0].online_at))
+
+            // Get participants without positions
+            const participantsWithoutPositions = Object.entries(presenceState)
+              .filter(([_, presences]) => !presences[0].position)
+              .sort((a, b) => a[1][0].online_at.localeCompare(b[1][0].online_at))
+
+            // Build the updated state preserving order
+            const updatedState = {} as RealtimePresenceState<Participant>
+            
+            // First add all participants that already have positions
+            participantsWithPositions.forEach(([k, presences]) => {
+              updatedState[k] = presences
+            })
+
+            // Then calculate positions for new participants
+            participantsWithoutPositions.forEach(([k, presences]) => {
+              // Check if we already have a position assigned for this participant
+              let position = assignedPositions.current.get(k)
+              
+              if (!position) {
+                // Only calculate new position if we don't have one stored
+                const existingPositions = Object.values(updatedState).map(p => p[0].position!)
+                const positionIndex = Object.keys(updatedState)
+                  .filter(key => key !== userId.current)
+                  .length
+                position = findAvailablePosition(positionIndex, existingPositions)
+                // Store the new position
+                assignedPositions.current.set(k, position)
+              }
+              
+              updatedState[k] = [{ ...presences[0], position }]
+            })
+
             setRoomState({
               channel: currentChannel,
-              participants: presenceState
+              participants: updatedState
             })
           }
         })
         .on('presence', { event: 'sync' }, () => {
           if (currentChannel) {
+            const presenceState = currentChannel.presenceState<Participant>()
+            
+            // Same logic as join handler
+            const participantsWithPositions = Object.entries(presenceState)
+              .filter(([_, presences]) => presences[0].position)
+              .sort((a, b) => a[1][0].online_at.localeCompare(b[1][0].online_at))
+
+            const participantsWithoutPositions = Object.entries(presenceState)
+              .filter(([_, presences]) => !presences[0].position)
+              .sort((a, b) => a[1][0].online_at.localeCompare(b[1][0].online_at))
+
+            const updatedState = {} as RealtimePresenceState<Participant>
+            
+            participantsWithPositions.forEach(([k, presences]) => {
+              updatedState[k] = presences
+            })
+
+            participantsWithoutPositions.forEach(([k, presences]) => {
+              // Check if we already have a position assigned for this participant
+              let position = assignedPositions.current.get(k)
+              
+              if (!position) {
+                // Only calculate new position if we don't have one stored
+                const existingPositions = Object.values(updatedState).map(p => p[0].position!)
+                const positionIndex = Object.keys(updatedState)
+                  .filter(key => key !== userId.current)
+                  .length
+                position = findAvailablePosition(positionIndex, existingPositions)
+                // Store the new position
+                assignedPositions.current.set(k, position)
+              }
+              
+              updatedState[k] = [{ ...presences[0], position }]
+            })
+
             setRoomState(prev => ({
               ...prev,
-              participants: currentChannel.presenceState<Participant>()
+              participants: updatedState
             }))
           }
         })
@@ -231,8 +334,15 @@ export function RealtimeRoom() {
           if (status === 'SUBSCRIBED') {
             await room.track({
               isBlinking: false,
+              gazeX: 0.5,
+              gazeY: 0.5,
               online_at: new Date().toISOString(),
-              room: roomNumber
+              room: roomNumber,
+              position: findAvailablePosition(
+                Object.keys(room.presenceState<Participant>())
+                  .filter(key => key !== userId.current)
+                  .length
+              )
             })
           }
         })
@@ -322,23 +432,27 @@ export function RealtimeRoom() {
           </div>
         </div>
       ) : (
-        <>
-          {/* Eyes for each participant */}
+        <div className="fixed inset-0 grid grid-cols-3 grid-rows-3 gap-4 p-8 md:gap-2 md:p-4 lg:max-w-6xl lg:mx-auto">
           {Object.entries(roomState.participants).map(([key, presences]) => {
             const participant = presences[0]
+            if (key === userId.current) return null
+            
             return (
-              <Eyes
+              <div 
                 key={key}
-                isBlinking={participant.isBlinking}
-                gazeX={participant.gazeX}
-                gazeY={participant.gazeY}
-              />
+                className={`flex items-center justify-center ${getGridClass(participant.position)}`}
+              >
+                <Eyes
+                  isBlinking={participant.isBlinking}
+                  gazeX={participant.gazeX ?? 0.5}
+                  gazeY={participant.gazeY ?? 0.5}
+                  alignment={getEyeAlignment(participant.position)}
+                />
+              </div>
             )
           })}
-        </>
+        </div>
       )}
-
-      
 
       {/* Debug panel */}
       <div className="fixed bottom-4 left-4 bg-black/50 p-2 rounded text-white text-sm space-y-2">
@@ -348,7 +462,6 @@ export function RealtimeRoom() {
         >
           Calibrate WebGazer
         </button>
-        
         <div>Connected Participants: {Object.keys(roomState.participants).length}</div>
         
         {/* Eye tracking debug info */}
@@ -356,7 +469,6 @@ export function RealtimeRoom() {
           <div>Left Eye Brightness: {debugData.leftBrightness.toFixed(2)}</div>
           <div>Right Eye Brightness: {debugData.rightBrightness.toFixed(2)}</div>
           <div>Average Brightness: {debugData.avgBrightness.toFixed(2)}</div>
-          <div>Threshold: {BLINK_THRESHOLD}</div>
           <div>Blinking: {debugData.isBlinking ? 'Yes' : 'No'}</div>
           {debugData.error && (
             <div className="text-red-400">Error: {debugData.error}</div>
@@ -400,5 +512,39 @@ function createThrottledFunction<T extends (...args: unknown[]) => unknown>(
       }, waitTimeMs)
     }
     // If we are waiting, the function call is ignored
+  }
+}
+
+function findAvailablePosition(index: number): string {
+  // Return position based on index, or first position if index is out of bounds
+  return GRID_POSITIONS[index] || GRID_POSITIONS[0]
+}
+
+// Helper function to convert position to Tailwind grid classes
+function getGridClass(position: string): string {
+  switch (position) {
+    case 'center': return 'col-start-2 row-start-2'
+    case 'middleLeft': return 'col-start-1 row-start-2'
+    case 'middleRight': return 'col-start-3 row-start-2'
+    case 'topCenter': return 'col-start-2 row-start-1'
+    case 'bottomCenter': return 'col-start-2 row-start-3'
+    case 'topLeft': return 'col-start-1 row-start-1'
+    case 'topRight': return 'col-start-3 row-start-1'
+    case 'bottomLeft': return 'col-start-1 row-start-3'
+    case 'bottomRight': return 'col-start-3 row-start-3'
+    default: return 'col-start-2 row-start-2'
+  }
+}
+
+function getEyeAlignment(position: string): 'start' | 'center' | 'end' {
+  switch (position) {
+    case 'topLeft':
+    case 'topRight':
+      return 'end'
+    case 'bottomLeft':
+    case 'bottomRight':
+      return 'start'
+    default:
+      return 'center'
   }
 }
