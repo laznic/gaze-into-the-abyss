@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import Eyes from './Eyes'
+import { useAudio } from '../hooks/useAudio'
 
 const MAX_PARTICIPANTS = 10
 const THROTTLE_MS = 75
@@ -114,9 +115,14 @@ export function RealtimeRoom() {
   const [eyeTrackingState, setEyeTrackingState] = useState<Record<string, EyeTrackingData>>({})
   const [isWebgazerReady, setIsWebgazerReady] = useState(false)
   const [hasCalibrated, setHasCalibrated] = useState(false)
+  const [isRoomJoined, setIsRoomJoined] = useState(false)
+  const { play: playAbyssSound } = useAudio('/abyss-background.mp3')
 
   // Initialize WebGazer first
   useEffect(() => {
+    // Start playing the ambient sound
+    playAbyssSound()
+
     window.webgazer
       .showPredictionPoints(false)
       .showVideo(false)
@@ -133,7 +139,7 @@ export function RealtimeRoom() {
     return () => {
       window.webgazer.end()
     }
-  }, [])
+  }, [playAbyssSound])
 
   // Only set up room connection after calibration is complete
   useEffect(() => {
@@ -394,11 +400,11 @@ export function RealtimeRoom() {
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            // Only track position and room number in presence
             await room.track({
               online_at: new Date().toISOString(),
               room: roomNumber,
             })
+            setIsRoomJoined(true)
           }
         })
     }
@@ -456,7 +462,7 @@ export function RealtimeRoom() {
       {!isWebgazerReady ? (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="text-white text-center font-serif text-md">
-            Initializing eye tracking...
+            Gazing into the abyss...
           </div>
         </div>
       ) : !hasCalibrated ? (
@@ -486,14 +492,20 @@ export function RealtimeRoom() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <button 
               onClick={startCalibration}
-              className="calibration-button hover:border-white transition-all text-white py-2 px-4 rounded font-serif text-md italic"
+              className="calibration-button border border-neutral-900 transition-all text-white py-2 px-4 rounded font-serif text-md italic"
             >
-              Start Calibration
+              Guide the void...
             </button>
           </div>
         )
+      ) : !isRoomJoined ? (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="text-white text-center font-serif text-md">
+            And if you gaze long into an abyss...
+          </div>
+        </div>
       ) : (
-        // Room view - only shown after calibration
+        // Room view - only shown after calibration and room join
         <div className="fixed inset-0 grid grid-cols-3 grid-rows-3 gap-4 p-8 md:gap-2 md:p-4 lg:max-w-6xl lg:mx-auto">
           {Object.entries(roomState.participants).map(([key, presences]) => {
             const participant = presences[0]
