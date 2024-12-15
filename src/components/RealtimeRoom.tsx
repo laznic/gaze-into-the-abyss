@@ -9,10 +9,7 @@ const SAMPLES_SIZE = 30 // Number of samples to keep for rolling average
 const THRESHOLD_MULTIPLIER = 1.2 // 30% above baseline
 
 interface Participant {
-  isBlinking: boolean
   online_at: string
-  gazeX: number
-  gazeY: number
   position?: Position
   room?: number
 }
@@ -38,6 +35,13 @@ interface CalibrationPoint {
 interface Position {
   x: number
   y: number
+}
+
+interface EyeTrackingData {
+  userId: string
+  isBlinking: boolean
+  gazeX: number
+  gazeY: number
 }
 
 declare global {
@@ -86,6 +90,7 @@ export function RealtimeRoom() {
   const [currentPoint, setCurrentPoint] = useState(0)
   const userId = useRef(window.crypto.randomUUID())
   const assignedPositions = useRef<Map<string, Position>>(new Map())
+  const [eyeTrackingState, setEyeTrackingState] = useState<Record<string, EyeTrackingData>>({})
 
   useEffect(() => {
     let currentChannel: RealtimeChannel | null = null
@@ -188,11 +193,21 @@ export function RealtimeRoom() {
             if (now - lastBlinkTime > 100) { // Minimum time between blink state changes
               isCurrentlyBlinking = blinkDetected
               lastBlinkTime = now
-              throttledTrackPosition(blinkDetected, gazeX, gazeY)
             }
-          } else {
-            throttledTrackPosition(isCurrentlyBlinking, gazeX, gazeY)
           }
+
+          // Instead of using track, broadcast the eye tracking data
+          currentChannel.send({
+            type: 'broadcast',
+            event: 'eye_tracking',
+            payload: {
+              userId: userId.current,
+              isBlinking: isCurrentlyBlinking,
+              gazeX,
+              gazeY
+            }
+          })
+
         } catch (error) {
           console.error('Error processing gaze data:', error)
           setDebugData(prev => ({ ...prev, error: error?.toString() || 'Unknown error' }))
@@ -200,29 +215,6 @@ export function RealtimeRoom() {
       })
       .saveDataAcrossSessions(true)
       .begin()
-
-    // Create throttled position tracking function
-    const throttledTrackPosition = createThrottledFunction((isBlinking: boolean, gazeX: number, gazeY: number) => {
-      if (currentChannel) {
-        const presenceState = currentChannel.presenceState<Participant>()
-        const myPresence = presenceState[userId.current]?.[0]
-        
-        if (!myPresence) {
-          console.error('No presence found for current user')
-          return
-        }
-
-        // Track with all current data, preserving position
-        currentChannel.track({
-          isBlinking,
-          gazeX,
-          gazeY,
-          online_at: new Date().toISOString(),
-          position: myPresence.position,  // Preserve existing position
-          room: myPresence.room          // Preserve room number
-        })
-      }
-    }, THROTTLE_MS)
 
     const joinRoom = async (roomNumber = 1) => {
       const room = supabase.channel(`room_${roomNumber}`, {
@@ -234,6 +226,13 @@ export function RealtimeRoom() {
       })
 
       room
+        .on('broadcast', { event: 'eye_tracking' }, ({ payload }) => {
+          const data = payload as EyeTrackingData
+          setEyeTrackingState(prev => ({
+            ...prev,
+            [data.userId]: data
+          }))
+        })
         .on('presence', { event: 'join' }, ({ key }) => {
           const presenceState = room.presenceState<Participant>()
           const presencesWithoutMe = Object.keys(presenceState).filter(key => key !== userId.current)
@@ -322,6 +321,23 @@ export function RealtimeRoom() {
               updatedState[k] = [{ ...presences[0], position }]
             })
 
+            // Clean up eye tracking state for users who left
+            setEyeTrackingState(prev => {
+              const currentUserIds = Object.keys(presenceState)
+              const newState = { ...prev }
+              
+              // Remove eye tracking data for users who are no longer present
+              Object.keys(newState).forEach(userId => {
+                if (!currentUserIds.includes(userId)) {
+                  delete newState[userId]
+                  // Also clean up their position assignment
+                  assignedPositions.current.delete(userId)
+                }
+              })
+              
+              return newState
+            })
+
             setRoomState(prev => ({
               ...prev,
               participants: updatedState
@@ -330,10 +346,8 @@ export function RealtimeRoom() {
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
+            // Only track position and room number in presence
             await room.track({
-              isBlinking: false,
-              gazeX: 0.5,
-              gazeY: 0.5,
               online_at: new Date().toISOString(),
               room: roomNumber
             })
@@ -428,6 +442,7 @@ export function RealtimeRoom() {
         <div className="fixed inset-0 grid grid-cols-3 grid-rows-3 gap-4 p-8 md:gap-2 md:p-4 lg:max-w-6xl lg:mx-auto">
           {Object.entries(roomState.participants).map(([key, presences]) => {
             const participant = presences[0]
+            const eyeData = eyeTrackingState[key]
             if (key === userId.current) return null
             
             return (
@@ -436,9 +451,9 @@ export function RealtimeRoom() {
                 className={`flex items-center justify-center ${getGridClass(participant.position)}`}
               >
                 <Eyes
-                  isBlinking={participant.isBlinking}
-                  gazeX={participant.gazeX ?? 0.5}
-                  gazeY={participant.gazeY ?? 0.5}
+                  isBlinking={eyeData?.isBlinking ?? false}
+                  gazeX={eyeData?.gazeX ?? 0.5}
+                  gazeY={eyeData?.gazeY ?? 0.5}
                   alignment={getEyeAlignment(participant.position)}
                 />
               </div>
