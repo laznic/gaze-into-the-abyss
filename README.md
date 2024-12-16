@@ -16,6 +16,9 @@ An experimental web experience where participants join virtual rooms and track e
 > The eye tracking has not been tested with 10 participants because I do not have 10 different web cams... So there is a chance that realtime connections
 > errors out due to excessive amount of events being sent. There is some throttling for the events, however it might not be enough.
 
+> [!NOTE] 
+> This is optimized for desktop and higher end devices. Mobile devices can work well if they aren't too old (same applies to laptops).
+
 ## 🛠️ Built With
 
 - [React](https://react.dev/)
