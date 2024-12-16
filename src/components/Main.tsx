@@ -37,7 +37,7 @@ export default function Main() {
       </blockquote>
 
       <footer className={`w-full flex justify-between items-center p-8 transition-opacity duration-1000 ${isAnimationComplete ? 'opacity-100' : 'opacity-0'}`}>
-        <Link to="/room" className="text-white hover:text-gray-300 z-10 font-serif italic calibration-button border border-neutral-900 transition-all text-md px-4 py-2 rounded">
+        <Link to="/abyss" className="text-white hover:text-gray-300 z-10 font-serif italic calibration-button border border-neutral-900 transition-all text-md px-4 py-2 rounded">
           Enter
         </Link>
 
