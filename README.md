@@ -59,4 +59,4 @@ An experimental web experience where participants join virtual rooms and track e
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License
