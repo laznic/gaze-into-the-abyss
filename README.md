@@ -12,6 +12,10 @@ An experimental web experience where participants join virtual rooms and track e
 - Animated SVG eyes with realistic pupil movement and blinking
 - Atmospheric visual effects using SVG filters
 
+> [!IMPORTANT] 
+> The eye tracking has not been tested with 10 participants because I do not have 10 different web cams... So there is a chance that realtime connections
+> errors out due to excessive amount of events being sent. There is some throttling for the events, however it might not be enough.
+
 ## 🛠️ Built With
 
 - [React](https://react.dev/)
