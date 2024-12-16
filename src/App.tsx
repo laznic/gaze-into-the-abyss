@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router'
-import { RealtimeRoom } from './components/RealtimeRoom'
 import Main from './components/Main'
+import { Abyss } from './components/Abyss'
 
 function App() {
   return (
@@ -39,8 +39,8 @@ function App() {
       <div className="fixed inset-0 w-[95vw] h-[95vh] bg-black rounded-full blur-[128px] m-auto" />
 
       <Routes>  
-        <Route path="/room" element={<RealtimeRoom />} />
         <Route path="/" element={<Main />} />
+        <Route path="/abyss" element={<Abyss />} />
       </Routes>
     </div>
   )

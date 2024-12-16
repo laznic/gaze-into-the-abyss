@@ -87,7 +87,7 @@ function createThrottledFunction<T extends (...args: unknown[]) => unknown>(
   }
 }
 
-export function RealtimeRoom() {
+export function Abyss() {
   const [roomState, setRoomState] = useState<RoomState>({
     channel: null,
     participants: {}
