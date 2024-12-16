@@ -18,12 +18,6 @@ function App() {
             >
             </feTurbulence>
             <feGaussianBlur stdDeviation="10">
-              <animate
-                attributeName="stdDeviation"
-                values="10;50;10"
-                dur="20s"
-                repeatCount="indefinite"
-              />
             </feGaussianBlur>
             <feColorMatrix
               type="matrix"
