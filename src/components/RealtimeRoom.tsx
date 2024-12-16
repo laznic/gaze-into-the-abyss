@@ -5,7 +5,7 @@ import Eyes from './Eyes'
 import { useAudio } from '../hooks/useAudio'
 
 const MAX_PARTICIPANTS = 10
-const THROTTLE_MS = 75
+const THROTTLE_MS = 100
 const SAMPLES_SIZE = 30 // Number of samples to keep for rolling average
 const THRESHOLD_MULTIPLIER = 1.2 // 30% above baseline
 
