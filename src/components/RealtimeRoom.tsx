@@ -103,7 +103,10 @@ export function RealtimeRoom() {
   const [hasCalibrated, setHasCalibrated] = useState(false)
   const [isRoomJoined, setIsRoomJoined] = useState(false)
   const { play: playAbyssSound } = useAudio('/abyss-background.mp3')
-
+  const imageCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null)
+  const brightnessSamples = useRef<number[]>([])
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight })
   // Initialize WebGazer first
   useEffect(() => {
     // Start playing the ambient sound
@@ -115,6 +118,8 @@ export function RealtimeRoom() {
       .showFaceOverlay(false)
       .showFaceFeedbackBox(false)
       .saveDataAcrossSessions(true)
+      .setTracker('TFFacemesh')
+      .applyKalmanFilter(true)
       .begin()
       .then(() => {
         setIsWebgazerReady(true)
@@ -137,12 +142,7 @@ export function RealtimeRoom() {
     let lastBlinkTime = Date.now()
     let isCurrentlyBlinking = false
 
-    // Create a canvas for processing eye patches
-    const imageCanvas = document.createElement('canvas')
-    const ctx = imageCanvas.getContext('2d')
-
-    // Add rolling brightness samples array
-    const brightnessSamples: number[] = []
+    ctxRef.current = imageCanvasRef.current.getContext('2d')
 
     // Create throttled broadcast function
     const throttledBroadcast = createThrottledFunction((data: EyeTrackingData) => {
@@ -158,12 +158,12 @@ export function RealtimeRoom() {
     // Initialize WebGazer with blink detection
     window.webgazer
       .setGazeListener(async (data: any) => {
-        if (data == null || !currentChannel || !ctx) return
+        if (data == null || !currentChannel || !ctxRef.current) return
 
         try {
           // Get normalized gaze coordinates
-          const gazeX = data.x / window.innerWidth
-          const gazeY = data.y / window.innerHeight
+          const gazeX = data.x / windowSize.width
+          const gazeY = data.y / windowSize.height
 
           // Get video element
           const videoElement = document.getElementById('webgazerVideoFeed') as HTMLVideoElement
@@ -173,17 +173,17 @@ export function RealtimeRoom() {
           }
 
           // Set canvas size to match video
-          imageCanvas.width = videoElement.videoWidth
-          imageCanvas.height = videoElement.videoHeight
+          imageCanvasRef.current.width = videoElement.videoWidth
+          imageCanvasRef.current.height = videoElement.videoHeight
 
           // Draw current frame to canvas
-          ctx.drawImage(videoElement, 0, 0)
+          ctxRef.current?.drawImage(videoElement, 0, 0)
 
           // Get eye patches
           const tracker = window.webgazer.getTracker()
           const patches = await tracker.getEyePatches(
             videoElement,
-            imageCanvas,
+            imageCanvasRef.current,
             videoElement.videoWidth,
             videoElement.videoHeight
           )
@@ -197,14 +197,14 @@ export function RealtimeRoom() {
           const calculateBrightness = (imageData: ImageData) => {
             let total = 0
 
-            for (let i = 0; i < imageData.data.length; i += 4) {
+            for (let i = 0; i < imageData.data.length; i += 16) {
               // Convert RGB to grayscale
               const r = imageData.data[i]
               const g = imageData.data[i + 1]
               const b = imageData.data[i + 2]
               total += (r + g + b) / 3
             }
-            return total / (imageData.width * imageData.height)
+            return total / (imageData.width * imageData.height / 4)
           }
 
           const rightEyeBrightness = calculateBrightness(patches.right.patch)
@@ -212,13 +212,13 @@ export function RealtimeRoom() {
           const avgBrightness = (rightEyeBrightness + leftEyeBrightness) / 2
 
           // Update rolling average
-          if (brightnessSamples.length >= SAMPLES_SIZE) {
-            brightnessSamples.shift() // Remove oldest sample
+          if (brightnessSamples.current.length >= SAMPLES_SIZE) {
+            brightnessSamples.current.shift() // Remove oldest sample
           }
-          brightnessSamples.push(avgBrightness)
+          brightnessSamples.current.push(avgBrightness)
 
           // Calculate dynamic threshold from rolling average
-          const rollingAverage = brightnessSamples.reduce((a, b) => a + b, 0) / brightnessSamples.length
+          const rollingAverage = brightnessSamples.current.reduce((a, b) => a + b, 0) / brightnessSamples.current.length
           const dynamicThreshold = rollingAverage * THRESHOLD_MULTIPLIER
           // Detect blink using dynamic threshold
           const blinkDetected = avgBrightness > dynamicThreshold
@@ -402,6 +402,12 @@ export function RealtimeRoom() {
     }
   }, [hasCalibrated])
 
+  useEffect(() => {
+    return () => {
+      brightnessSamples.current = []
+    }
+  }, [])
+
   const startCalibration = useCallback(() => {
     const points: CalibrationPoint[] = [
       { x: 0.1, y: 0.1 },
@@ -432,6 +438,17 @@ export function RealtimeRoom() {
       setHasCalibrated(true)
     }
   }, [isCalibrating, currentPoint, calibrationPoints.length])
+
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setWindowSize({ width, height })
+    })
+    
+    resizeObserver.observe(document.body)
+    
+    return () => resizeObserver.disconnect()
+  }, [])
 
   return (
     <>
