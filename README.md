@@ -3,6 +3,8 @@
 
 An experimental web experience where participants join virtual rooms and track each other's eye movements and blinks in real-time. Built for Supabase Launch Week 13 Hackathon.
 
+[Demo video](https://www.loom.com/share/d597185fd6b04d1e8c6fdf6e6fffb3b4?sid=7422489f-c9c7-4fc0-9c0d-2667e48c42fc)
+
 ## 🌟 Features
 
 - Eye tracking and blink detection using WebGazer.js
