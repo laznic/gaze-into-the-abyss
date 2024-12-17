@@ -27,6 +27,7 @@ An experimental web experience where participants join virtual rooms and track e
 - [Supabase Realtime](https://supabase.com/docs/guides/realtime)
 - [WebGazer.js](https://webgazer.cs.brown.edu/)
 - [Motion One](https://motion.dev/)
+- [anime.js](https://animejs.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Stable Audio](https://www.stableaudio.com/)
 
